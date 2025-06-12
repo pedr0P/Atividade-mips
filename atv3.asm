@@ -1,5 +1,6 @@
 .data
-vec   : .word   10, 9, 8, 7, 6, 5, 4, 3, 2, 1
+#vec   : .word   10, 9, 8, 7, 6, 5, 4, 3, 2, 1
+vec   : .word   9, 8, 9, 4, 8, 3, 1, 7, 5, 1000
 sep   : .asciiz " "
 n_line: .asciiz "\n"
 
@@ -7,38 +8,29 @@ n_line: .asciiz "\n"
 .globl main
 
 main:
-    # Show the vector before
     la  $t0, vec
-    lw  $t1, 36($t0)
+    la  $t3, vec
+    la  $t1, 0($t0)
+    la  $t2, 4($t1)
+
     jal Print_vec
 
-    # New line
+    ### New line
     li $v0, 4
     la $a0, n_line
     syscall
 
-    # Prepare to sort
-    la  $t0, vec
-    lw  $t3, 36($t0)
-    # Sort loop
     jal Sort
 
     j Exit
 
-Sort:
-    lw $t1, 0($t0)
-    lw $t2, 4($t0)
-
-    sgt $t9, $t1, $t2
-    beq $t9, 1, Swap
-    
-Swap:
-    move 0($t0)
-    
 Print_vec:
+    # Last spot of memory
+    la  $s7, 40($t3)
+
     # Print vec[n]
     li $v0, 1
-    lw $a0, 0($t0)
+    lw $a0, ($t0)
     syscall
 
     # Print "sep"
@@ -54,9 +46,45 @@ Print_vec:
 
     addi $t0, $t0, 4
 
-    bne $a0, $t1, Print_vec
+
+    bne $t0, $s7, Print_vec
+    la  $t0, vec
     jr $ra
+
+Sort:
+    # Last spot of memory
+    lw  $s7, 36($t0)
+
+    lw  $s1, ($t1)
+    lw  $s2, ($t2)
+    sgt $s0, $s1, $s2
+    beq $s0, 1, Swap
+
+    seq $s0, $s2, $s7
+    beq $s0, 1, Sort_2
+
+    addi $t2, $t2, 4
+
+    j Sort
+Sort_2:
+    la  $s6, -4($t2)
+    seq $s0, $t1, $s6 
+    beq $s0, 1, Print_vec
+
+    addi $t1, $t1, 4
+    la   $t2, 4($t1)
+
+    j Sort
+
+Swap:
+    lw $a1, ($t1)
+    lw $a2, ($t2)
+    sw $a1, ($t2)
+    sw $a2, ($t1)
+
+    j Sort
 
 Exit:
     li $v0, 10
     syscall
+
